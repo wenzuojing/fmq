@@ -11,7 +11,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -79,12 +78,12 @@ public class MetaStore implements Closeable {
         mappedByteBuffer.putInt(dataStroeSegment) ;
         mappedByteBuffer.putInt(dataStroeOffset) ;
 
-        meta.setDataStroeSegment(dataStroeSegment);
+        meta.setDataStroeSegmentIndex(dataStroeSegment);
         meta.setDataStroeOffset(dataStroeOffset);
     }
 
     public Meta getMeta() {
-        return new Meta(this.meta.getDataStroeSegment() , this.meta.getDataStroeOffset());
+        return new Meta(this.meta.getDataStroeSegmentIndex() , this.meta.getDataStroeOffset());
     }
 
     @Override

@@ -5,20 +5,20 @@ package org.wzj.fmq.core;
  */
 public class Meta {
 
-    private int dataStroeSegment ;
+    private int dataStroeSegmentIndex ;
     private int dataStroeOffset ;
 
-    public Meta(int dataStroeSegment, int dataStroeOffset) {
-        this.dataStroeSegment = dataStroeSegment;
+    public Meta(int dataStroeSegmentIndex, int dataStroeOffset) {
+        this.dataStroeSegmentIndex = dataStroeSegmentIndex;
         this.dataStroeOffset = dataStroeOffset;
     }
 
-    public int getDataStroeSegment() {
-        return dataStroeSegment;
+    public int getDataStroeSegmentIndex() {
+        return dataStroeSegmentIndex;
     }
 
-    public void setDataStroeSegment(int dataStroeSegment) {
-        this.dataStroeSegment = dataStroeSegment;
+    public void setDataStroeSegmentIndex(int dataStroeSegmentIndex) {
+        this.dataStroeSegmentIndex = dataStroeSegmentIndex;
     }
 
     public int getDataStroeOffset() {
