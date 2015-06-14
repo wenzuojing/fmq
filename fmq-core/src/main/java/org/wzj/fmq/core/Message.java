@@ -9,6 +9,15 @@ public class Message {
 
     private byte[] data ;
 
+    public Message(long id, byte[] data) {
+        this.id = id;
+        this.data = data;
+    }
+
+    public Message() {
+
+    }
+
     public long getId() {
         return id;
     }

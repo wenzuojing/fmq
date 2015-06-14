@@ -1,117 +1,105 @@
 package org.wzj.fmq.core;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by wens on 15-6-12.
  */
-public class Segment implements Comparable<Segment> ,Closeable {
+public abstract class Segment implements Comparable<Segment> , Lifecycle  {
 
-    public static final String DATA_FILE_NAME_PREFFIX = "data-" ;
-    //public static final String INDEX_FILE_NAME_PREFFIX = "index-" ;
+    protected long sid ;
 
-    public static final long MAX_BYTE_SIZE = 1 * 1024 * 1024 * 1024 ; //1G
+    protected long cid ;
 
-    private long sid ;
+    protected int maxByteSize ;
 
-    private String basePath ;
+    protected int byteSize ;
 
-    private long byteSize ;
+    protected ReadWriteLock rwLock = new ReentrantReadWriteLock() ;
 
-    private  SegmentIndex index ;
+    protected SortedSet<ChunkInfo>  chunkInfos ;
 
-    private ReadWriteLock rwLock = new ReentrantReadWriteLock() ;
-
-    private WriteMappedFile writeMappedFile ;
-
-    private SortedSet<DataChunkInfo>
-
-    public Segment(String basePath , long sid ) {
+    public Segment(long sid , int maxByteSize ) {
         this.sid = sid;
-        this.basePath = basePath;
+        this.cid = sid -1  ;
+        this.maxByteSize = maxByteSize ;
+        this.byteSize = 0 ;
+        this.chunkInfos = new TreeSet<>() ;
     }
 
-    public void loadDataChunkInfo(){
+    @Override
+    public void init(){
+        loadChunkInfo();
+    }
 
-        RandomAccessFile raf  = null ;
+    public Segment(long sid) {
+        this.sid = sid ;
+    }
+
+    protected abstract void loadChunkInfo() ;
+
+
+    public Message query(long id ) throws IOException {
+
+        ChunkInfo findChunkInfo ;
+
+        rwLock.readLock().lock();
         try{
-            raf = new RandomAccessFile(basePath + File.separator + DATA_FILE_NAME_PREFFIX +sid , "r") ;
-
-            byte[] buf  = new byte[DataChunkInfo.Header.B_SIZE] ;
-            while(true){
-                int n = raf.read(buf);
-
-                if(DataChunkInfo.Header.B_SIZE != n ){
-                    break ;
-                }
-
-                DataChunkInfo.Header header = new DataChunkInfo.Header();
-                header.decode(buf);
-                DataChunkInfo dataChunk = new DataChunkInfo(header, null);
-                raf.skipBytes((int)header.length) ;
-
+            ChunkInfo first = chunkInfos.tailSet(ChunkInfo.toChunkInfo(id)).first();
+            if(first.id != id ){
+                return null ;
             }
-
-
-        }catch (IOException e ){
-            throw new RuntimeException("load chunk info fail." , e ) ;
+            findChunkInfo = first ;
+        }finally {
+            rwLock.readLock().unlock();
         }
 
+        return query( findChunkInfo ) ;
     }
 
 
-    public Message query(long id ) {
-        return null ;
-    }
-
+    protected abstract Message query(ChunkInfo chunkInfo ) throws IOException;
 
     @Override
     public int compareTo(Segment o) {
         return (int)( sid - o.sid ) ;
     }
 
-    public void write(SegmentIndex.IndexItem indexItem, Message message) throws IOException {
+    public void write(Message message  , ChunkInfo  chunkInfo  ) throws IOException {
+
         rwLock.writeLock().lock();
         try{
-            long id  = sid + index.getSize()  + 1 ;
-            indexItem.offset = this.byteSize ;
-            indexItem.id = id   ;
+            long id  = cid  + 1 ;
+            chunkInfo.id = id ;
+            chunkInfo.offset = byteSize ;
+            byte[] header = chunkInfo.encode();
+            write_0(header) ;
             write_0(message.getData()) ;
-            index.write(indexItem) ;
+            byteSize += header.length + message.getData().length ;
             message.setId(id);
+            this.cid = id ;
+            this.chunkInfos.add(chunkInfo);
         }finally {
             rwLock.writeLock().unlock();
         }
-
-
     }
 
-    private void write_0(byte[] bytes) throws IOException {
-        if( writeMappedFile == null ){
-            writeMappedFile = new WriteMappedFile(basePath + File.separator + DATA_FILE_NAME_PREFFIX + sid  , 0 , 50 * 1024 * 1024 , 100  * 1024 ) ;
-        }
-        writeMappedFile.write(bytes);
-    }
+    protected abstract void write_0(byte[] bytes) throws IOException ;
 
     public long getSid() {
         return sid;
     }
 
-    public SegmentIndex getIndex() {
-        return index;
-    }
 
     public boolean isFull() {
 
         rwLock.readLock().lock(); ;
         try{
-            if(byteSize > MAX_BYTE_SIZE) {
+            if(byteSize > maxByteSize) {
                 return true ;
             }else {
                 return false ;
@@ -120,12 +108,71 @@ public class Segment implements Comparable<Segment> ,Closeable {
             rwLock.readLock().unlock();
         }
 
-
-
     }
 
     @Override
-    public void close() throws IOException {
+    public void close()  {
+        chunkInfos.clear();
+    }
 
+
+
+    public long getCid() {
+        return cid;
+    }
+
+    public static Segment toSegment(long sid){
+        return new Segment(sid){
+
+            @Override
+            protected void loadChunkInfo() {
+                throw new UnsupportedOperationException() ;
+            }
+
+            @Override
+            public Message query(long id) throws IOException {
+                throw new UnsupportedOperationException() ;
+            }
+
+            @Override
+            protected Message query(ChunkInfo chunkInfo) {
+                return null;
+            }
+
+            @Override
+            public int compareTo(Segment o) {
+                return super.compareTo(o);
+            }
+
+            @Override
+            public void write(Message message, ChunkInfo chunkInfo) throws IOException {
+                throw new UnsupportedOperationException() ;
+            }
+
+            @Override
+            protected void write_0(byte[] bytes) throws IOException {
+                throw new UnsupportedOperationException() ;
+            }
+
+            @Override
+            public long getSid() {
+                return super.getSid();
+            }
+
+            @Override
+            public boolean isFull() {
+                throw new UnsupportedOperationException() ;
+            }
+
+            @Override
+            public void close()  {
+                throw new UnsupportedOperationException() ;
+            }
+
+            @Override
+            public long getCid() {
+                throw new UnsupportedOperationException() ;
+            }
+        } ;
     }
 }

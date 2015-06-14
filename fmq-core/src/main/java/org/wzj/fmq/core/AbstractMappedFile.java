@@ -33,8 +33,8 @@ public abstract class AbstractMappedFile implements Closeable {
         }
 
 
-        if (fileChannel == null) {
-            throw new IllegalArgumentException("fileChannel must not be null.");
+        if (filePath == null) {
+            throw new IllegalArgumentException("filePath must not be null.");
         }
 
         this.bufferSize = bufferSize;

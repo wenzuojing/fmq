@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Created by wens on 15-6-11.
  */
-public interface DataStore extends Cloneable {
+public interface DataStore extends Lifecycle {
 
 
     /**
@@ -26,7 +26,7 @@ public interface DataStore extends Cloneable {
      * @param size
      * @return
      */
-    List<Message> query(long startId , int size ) ;
+    List<Message> query(long startId , int size ) throws IOException;
 
 
 
