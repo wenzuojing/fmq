@@ -1,6 +1,7 @@
 package org.wzj.fmq.core.store.file.service;
 
-import org.wzj.fmq.core.store.file.Lifecycle;
+
+import org.wzj.fmq.core.store.Lifecycle;
 
 /**
  * Created by wens on 15-6-17.

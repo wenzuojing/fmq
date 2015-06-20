@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.fmq.core.common.Constant;
 import org.wzj.fmq.core.common.ServiceThread;
-import org.wzj.fmq.core.store.file.Lifecycle;
+import org.wzj.fmq.core.store.Lifecycle;
 
 /**
  * Created by wens on 15-6-17.

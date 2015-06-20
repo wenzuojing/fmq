@@ -102,6 +102,34 @@ public class StoreMessage implements Serializable, Encodable {
 
     @Override
     public void decode(ByteBuffer buffer) {
+
+        storeSize = buffer.getInt();
+        buffer.getInt();
+        checkSum = buffer.getInt();
+        flag = buffer.getInt();
+        createTimestamp = buffer.getLong();
+        dataOffset = buffer.getLong();
+        int bodyByteSize = buffer.getInt();
+
+        if (bodyByteSize != 0) {
+            body = new byte[bodyByteSize] ;
+            buffer.get(body);
+        }
+
+        byte topicByteSize = buffer.get();
+        if (topicByteSize != 0) {
+            byte[] buf = new byte[topicByteSize];
+            buffer.get(buf);
+            topic = new String(buf).intern();
+        }
+
+
+
+    }
+
+    @Override
+    public void encode(ByteBuffer buffer) {
+
         buffer.putInt(storeSize);
         buffer.putInt(MESSAGE_MAGIC);
         buffer.putInt(checkSum);
@@ -122,29 +150,6 @@ public class StoreMessage implements Serializable, Encodable {
             buffer.put(topic.getBytes());
         }
 
-    }
-
-    @Override
-    public void encode(ByteBuffer buffer) {
-
-        storeSize = buffer.getInt();
-        buffer.getInt();
-        checkSum = buffer.getInt();
-        flag = buffer.getInt();
-        createTimestamp = buffer.getLong();
-        dataOffset = buffer.getLong();
-        int bodyByteSize = buffer.getInt();
-
-        if (bodyByteSize != 0) {
-            buffer.get(body);
-        }
-
-        byte topicByteSize = buffer.get();
-        if (topicByteSize != 0) {
-            byte[] buf = new byte[topicByteSize];
-            buffer.put(buf);
-            topic = new String(buf).intern();
-        }
     }
 
     public int getTopicByteSize() {

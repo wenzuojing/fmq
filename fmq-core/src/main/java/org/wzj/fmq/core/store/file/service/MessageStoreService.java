@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.fmq.core.common.Constant;
 import org.wzj.fmq.core.common.ServiceThread;
+import org.wzj.fmq.core.store.Lifecycle;
 import org.wzj.fmq.core.store.PutMessageResult;
 import org.wzj.fmq.core.store.PutMessageStatus;
 import org.wzj.fmq.core.store.StoreMessage;

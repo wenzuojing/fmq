@@ -20,8 +20,8 @@ public class DataQueue extends AbstractQueue {
 
     private AppendMessageHelper appendMessageHelper ;
 
-    public DataQueue(String dirPath, int mappedFileSize , int maxMessageSize ) {
-        super(dirPath, mappedFileSize);
+    public DataQueue(String filePath, int mappedFileSize , int maxMessageSize ) {
+        super(filePath, mappedFileSize);
         appendMessageHelper = new AppendMessageHelper(maxMessageSize) ;
     }
 
@@ -83,6 +83,12 @@ public class DataQueue extends AbstractQueue {
 
     public AppendMessageResult appendMessage(StoreMessage msg ) {
         ByteBuffer byteBuffer = mappedFile.getByteBuffer();
-        return appendMessageHelper.doAppend(getFromOffset(),byteBuffer ,byteBuffer.remaining() , msg);
+        int writeOffset = getWritePosition() ;
+        byteBuffer.position(writeOffset) ;
+        AppendMessageResult appendMessageResult = appendMessageHelper.doAppend(getFromOffset(), byteBuffer, byteBuffer.remaining(), msg);
+
+        setWritePosition(writeOffset + appendMessageResult.getWroteBytes());
+
+        return appendMessageResult;
     }
 }

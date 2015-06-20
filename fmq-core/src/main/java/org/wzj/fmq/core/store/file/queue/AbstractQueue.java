@@ -30,13 +30,10 @@ public abstract class AbstractQueue implements FileQueue {
 
     }
 
-    @Override
-    public long getQueueCreateTimestamp() {
-        return mappedFile.getFile().lastModified() ;
-    }
 
     @Override
     public void delete() {
+        shutdown();
         mappedFile.delete() ;
     }
 
@@ -51,7 +48,7 @@ public abstract class AbstractQueue implements FileQueue {
     }
 
     @Override
-    public void setWrotePosition(int position) {
+    public void setWritePosition(int position) {
         mappedFile.setWritePosition(position);
     }
 
@@ -62,8 +59,8 @@ public abstract class AbstractQueue implements FileQueue {
     }
 
     @Override
-    public long getWritePosition() {
-        return 0;
+    public int getWritePosition() {
+        return mappedFile.getWritePosition();
     }
 
     @Override
@@ -106,8 +103,7 @@ public abstract class AbstractQueue implements FileQueue {
 
 
     public  SelectMappedBufferResult selectMappedBuffer(int pos, int size){
-        ByteBuffer byteBuffer = mappedFile.getByteBuffer(pos);
-        byteBuffer.limit(size);
+        ByteBuffer byteBuffer = mappedFile.getByteBuffer(pos , size );
         return new SelectMappedBufferResult(pos , byteBuffer , size ) ;
 
     }

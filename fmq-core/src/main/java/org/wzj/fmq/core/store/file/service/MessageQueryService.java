@@ -2,7 +2,7 @@ package org.wzj.fmq.core.store.file.service;
 
 import org.wzj.fmq.core.store.GetMessageResult;
 import org.wzj.fmq.core.store.GetMessageStatus;
-import org.wzj.fmq.core.store.file.Lifecycle;
+import org.wzj.fmq.core.store.Lifecycle;
 import org.wzj.fmq.core.store.file.SelectMappedBufferResult;
 import org.wzj.fmq.core.store.file.StoreMessagePosition;
 import org.wzj.fmq.core.store.file.queue.IndexQueueManager;

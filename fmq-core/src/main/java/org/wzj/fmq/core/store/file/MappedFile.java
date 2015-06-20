@@ -31,11 +31,11 @@ public interface MappedFile {
 
     ByteBuffer getByteBuffer();
 
-    long getWritePosition();
+    int getWritePosition();
 
     void setWritePosition(int position);
 
-    long getFlushPosition();
+    int getFlushPosition();
 
     File getFile();
 

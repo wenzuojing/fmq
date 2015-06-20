@@ -62,8 +62,10 @@ public class AppendMessageHelper {
 
         this.resetMsgStoreItemMemory(totalByteSize);
 
+        msg.setStoreSize(totalByteSize);
         msg.encode(this.msgStoreItemMemory);
 
+        //System.out.println(new String( this.msgStoreItemMemory.array(), 0 , totalByteSize ));
         byteBuffer.put(this.msgStoreItemMemory.array(), 0, totalByteSize);
 
         AppendMessageResult result =

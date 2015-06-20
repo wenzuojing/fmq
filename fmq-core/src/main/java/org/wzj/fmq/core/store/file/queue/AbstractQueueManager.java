@@ -18,7 +18,7 @@ package org.wzj.fmq.core.store.file.queue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.fmq.core.common.Constant;
-import org.wzj.fmq.core.store.file.Lifecycle;
+import org.wzj.fmq.core.store.Lifecycle;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,7 +62,7 @@ public abstract class AbstractQueueManager<T extends FileQueue> implements Lifec
             long fileTailOffset = queue.getFromOffset() + this.mappedFileSize;
             if (fileTailOffset > offset) {
                 if (offset >= queue.getFromOffset()) {
-                    queue.setWrotePosition((int) (offset % this.mappedFileSize));
+                    queue.setWritePosition((int) (offset % this.mappedFileSize));
                     queue.setCommittedPosition((int) (offset % this.mappedFileSize));
                 } else {
                     queue.delete();

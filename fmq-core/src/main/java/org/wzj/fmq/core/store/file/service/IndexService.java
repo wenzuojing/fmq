@@ -3,7 +3,7 @@ package org.wzj.fmq.core.store.file.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.fmq.core.common.Constant;
-import org.wzj.fmq.core.store.file.Lifecycle;
+import org.wzj.fmq.core.store.Lifecycle;
 import org.wzj.fmq.core.store.file.queue.IndexQueue;
 import org.wzj.fmq.core.store.file.queue.IndexQueueManager;
 

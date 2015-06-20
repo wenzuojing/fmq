@@ -1,13 +1,13 @@
 package org.wzj.fmq.core.store.file.queue;
 
-import org.wzj.fmq.core.store.file.Lifecycle;
+
+import org.wzj.fmq.core.store.Lifecycle;
 
 /**
  * Created by wens on 15-6-17.
  */
 public interface FileQueue extends Lifecycle {
 
-    long getQueueCreateTimestamp();
 
     void delete();
 
@@ -15,11 +15,11 @@ public interface FileQueue extends Lifecycle {
 
     long getFromOffset();
 
-    void setWrotePosition(int i);
+    void setWritePosition(int i);
 
     boolean isFull();
 
-    long getWritePosition();
+    int getWritePosition();
 
     void commit();
 

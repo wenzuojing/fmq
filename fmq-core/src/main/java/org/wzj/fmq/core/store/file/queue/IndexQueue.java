@@ -25,12 +25,11 @@ public class IndexQueue extends AbstractQueue {
         header = mappedFile.getByteBuffer(0 , INDEX_UNIT_SIZE ) ;
         minDataCreateTimestamp = header.getLong();
         maxDataCreateTimestamp = header.getLong();
-
         mappedFile.setWritePosition(INDEX_UNIT_SIZE);
     }
 
-    public IndexQueue(String dirPath, int mappedFileSize) {
-        super(dirPath, mappedFileSize);
+    public IndexQueue(String filePath, int mappedFileSize) {
+        super(filePath, mappedFileSize);
     }
 
 
@@ -51,7 +50,7 @@ public class IndexQueue extends AbstractQueue {
                 break;
             }
         }
-        setWrotePosition(INDEX_UNIT_SIZE /*header length */ + process);
+        setWritePosition(INDEX_UNIT_SIZE /*header length */ + process);
         return INDEX_UNIT_SIZE + process ;
     }
 
@@ -61,13 +60,18 @@ public class IndexQueue extends AbstractQueue {
         if( getMinDataCreateTimestamp() == 0 ) {
             setMinDataCreateTimestamp(createTimestamp);
         }
+
         setMaxDataCreateTimestamp(createTimestamp);
 
-        ByteBuffer byteBuffer = mappedFile.getByteBuffer();
+        int writeOffset = getWritePosition();
+
+        ByteBuffer byteBuffer = mappedFile.getByteBuffer(writeOffset);
 
         byteBuffer.putLong(dataOffset) ;
-        byteBuffer.putLong(msgSize ) ;
+        byteBuffer.putInt(msgSize) ;
         byteBuffer.putLong(createTimestamp) ;
+
+        setWritePosition(writeOffset+INDEX_UNIT_SIZE);
 
 
     }
@@ -126,17 +130,17 @@ public class IndexQueue extends AbstractQueue {
     }
 
     private int  findIndex(long timestamp, int sIndex, int eIndex) {
-        if(sIndex == eIndex ){
+        if(sIndex > eIndex ){
             return sIndex ;
         }
-        int mIndex  = sIndex + eIndex / 2 ;
+        int mIndex  = ( sIndex + eIndex ) / 2 ;
 
         StoreMessagePosition storeMessagePosition = indexFor(mIndex) ;
 
         if( timestamp < storeMessagePosition.getCreateTimestamp() ){
-            return findIndex(timestamp, sIndex , mIndex ) ;
-        }else if( timestamp < storeMessagePosition.getCreateTimestamp() ){
-            return findIndex(timestamp, eIndex , mIndex ) ;
+            return findIndex(timestamp, sIndex , mIndex - 1  ) ;
+        }else if( timestamp > storeMessagePosition.getCreateTimestamp() ){
+            return findIndex(timestamp, mIndex + 1  , eIndex  ) ;
         }else {
             return mIndex ;
         }
@@ -144,7 +148,7 @@ public class IndexQueue extends AbstractQueue {
 
     public StoreMessagePosition indexFor(long index ) {
 
-        if(index < getMinIndex() || index > getMinIndex() ){
+        if(index < getMinIndex() || index > getMaxIndex() ){
             return null ;
         }
 

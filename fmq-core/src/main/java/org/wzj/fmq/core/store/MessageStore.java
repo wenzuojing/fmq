@@ -15,7 +15,6 @@
  */
 package org.wzj.fmq.core.store;
 
-import org.wzj.fmq.core.store.file.Lifecycle;
 
 /**
  * Created by wens on 15-6-18.

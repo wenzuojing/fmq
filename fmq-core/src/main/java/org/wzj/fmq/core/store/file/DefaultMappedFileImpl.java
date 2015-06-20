@@ -77,8 +77,6 @@ public class DefaultMappedFileImpl implements MappedFile {
         try {
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
             this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
-            this.writePosition.set(fileSize);
-            this.flushPosition.set(fileSize);
 
             TOTAL_MAPPED_VISUAL_MEMORY.addAndGet(fileSize);
             TOTAL_MAPPED_FILES.incrementAndGet();
@@ -99,25 +97,26 @@ public class DefaultMappedFileImpl implements MappedFile {
 
     @Override
     public ByteBuffer getByteBuffer(int position) {
-        mappedByteBuffer.position(position);
-        return mappedByteBuffer.slice();
+        ByteBuffer duplicate = mappedByteBuffer.duplicate();
+        duplicate.position(position) ;
+        return duplicate;
     }
 
     @Override
     public ByteBuffer getByteBuffer(int position, int size) {
-        ByteBuffer byteBuffer = getByteBuffer(position);
-        byteBuffer.limit(size) ;
-        return byteBuffer.slice();
+        ByteBuffer duplicate = mappedByteBuffer.duplicate();
+        duplicate.position(position) ;
+        duplicate.limit(position + size);
+        return duplicate;
     }
 
     @Override
     public ByteBuffer getByteBuffer() {
-        mappedByteBuffer.position(writePosition.get());
-        return mappedByteBuffer.slice();
+        return mappedByteBuffer.duplicate();
     }
 
     @Override
-    public long getWritePosition() {
+    public int getWritePosition() {
         return writePosition.get();
     }
 
@@ -126,13 +125,13 @@ public class DefaultMappedFileImpl implements MappedFile {
     }
 
     @Override
-    public long getFlushPosition() {
+    public int getFlushPosition() {
         return flushPosition.get();
     }
 
     @Override
     public File getFile() {
-        return null;
+        return this.file ;
     }
 
     public int getFileSize() {
