@@ -3,6 +3,8 @@ package org.wzj.fmq.core.store.file.queue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wzj.fmq.core.common.Constant;
+import org.wzj.fmq.core.store.StoreMessage;
+import org.wzj.fmq.core.store.file.AppendMessageResult;
 import org.wzj.fmq.core.util.Utils;
 
 import java.io.File;
@@ -47,7 +49,7 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
 
 
     @Override
-    public void recoverNormally() {
+    public long recoverNormally(long fromOffset) {
 
         if (!loadedQueues.isEmpty()) {
             DataQueue dataQueue = getLastQueue();
@@ -58,20 +60,11 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
             truncateDirtyFiles(processOffset);
         }
 
+        return 0 ;
+
     }
 
-    @Override
-    public void recoverAbnormally() {
-        if (!loadedQueues.isEmpty()) {
-            DataQueue dataQueue = getLastQueue();
-            long processOffset = dataQueue.recover();
 
-            reindex(dataQueue.getFromOffset(), processOffset);
-
-            setCommittedWhere(processOffset);
-            truncateDirtyFiles(processOffset);
-        }
-    }
 
     @Override
     public DataQueue createNewQueue() {
@@ -82,17 +75,34 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
             DataQueue lastQueue = getLastQueue();
 
             if (lastQueue != null) {
+
+                if(!lastQueue.isFull()){
+                    return lastQueue ;
+                }
+
                 fromOffset = lastQueue.getFromOffset() + mappedFileSize;
             }
 
-            DataQueue fileQueue = new DataQueue(storePath + File.separator + Utils.long2fileName(fromOffset), mappedFileSize , this.maxMessageSize );
+            DataQueue dataQueue = new DataQueue(storePath + File.separator + Utils.long2fileName(fromOffset), mappedFileSize , this.maxMessageSize );
 
-            this.loadedQueues.add(fileQueue);
-            return fileQueue;
+            dataQueue.init();
+            dataQueue.start();
+            this.loadedQueues.add(dataQueue);
+            return dataQueue;
         } finally {
             readWriteLock.writeLock().unlock();
         }
 
+    }
+
+    public AppendMessageResult appendMessage(StoreMessage msg) {
+        AppendMessageResult result;
+        DataQueue dataQueue = getLastQueue();
+        if (null == dataQueue || dataQueue.isFull() ) {
+            dataQueue = createNewQueue();
+        }
+        result = dataQueue.appendMessage(msg );
+        return result;
     }
 
     private void reindex(long fromOffset, long processOffset) {

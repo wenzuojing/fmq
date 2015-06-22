@@ -15,7 +15,7 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Created by wens on 15-6-17.
  */
-public class DispatchMessageService extends ServiceThread implements Lifecycle {
+public class DispatchMessageService extends ServiceThread{
 
     private static final Logger log = LoggerFactory.getLogger(Constant.STORE_LOG_NAME);
 
@@ -23,8 +23,13 @@ public class DispatchMessageService extends ServiceThread implements Lifecycle {
 
     private ServiceManager serviceManager;
 
+    private StoreMessagePosition poison = new StoreMessagePosition(-1) ;
+
+
+
 
     public DispatchMessageService(ServiceManager serviceManager, int putMsgIndexHigthWater) {
+        super("dispatch-message");
         this.serviceManager = serviceManager;
         putMsgIndexHigthWater *= 1.5;
         requestQueue = new ArrayBlockingQueue<StoreMessagePosition>(putMsgIndexHigthWater) ;
@@ -40,39 +45,47 @@ public class DispatchMessageService extends ServiceThread implements Lifecycle {
     }
 
 
-
-    public void run() {
-        log.info(this.getServiceName() + " service started");
-
-        while (!this.isStoped() && requestQueue.size() == 0) {
-            try {
-                this.waitForRunning(0);
-
-                StoreMessagePosition storeMessagePosition = requestQueue.take();
-
-                this.serviceManager.getIndexService().putMessagePositionInfo(storeMessagePosition.getTopic(),
-                        storeMessagePosition.getDataQueueOffset(), storeMessagePosition.getMsgSize(),
-                        storeMessagePosition.getCreateTimestamp());
-
-            } catch (Exception e) {
-                log.warn(this.getServiceName() + " service has exception. ", e);
-            }
-        }
-        log.info(this.getServiceName() + " service end");
-    }
-
-
     @Override
-    public String getServiceName() {
-        return DispatchMessageService.class.getSimpleName();
+    public void executeTask() {
+        try {
+            StoreMessagePosition storeMessagePosition = requestQueue.take();
+
+            if(storeMessagePosition.getMsgSize() == -1 ){
+                synchronized (storeMessagePosition){
+                    storeMessagePosition.notify();
+                }
+                return ;
+            }
+
+            log.debug("dispatch -> {}" , storeMessagePosition );
+
+            this.serviceManager.getIndexService().putMessagePositionInfo(storeMessagePosition.getTopic(),
+                    storeMessagePosition.getDataQueueOffset(), storeMessagePosition.getMsgSize(),
+                    storeMessagePosition.getCreateTimestamp());
+
+        } catch (Exception e) {
+            //
+        }
     }
+
+
 
     public void putDispatchRequest(final StoreMessagePosition dispatchRequest) {
         putRequest(dispatchRequest);
     }
 
+
     @Override
-    public void init() {
+    public void shutdown() {
+        try {
+            this.requestQueue.put(poison);
+            synchronized (poison){
+                poison.wait();
+            }
+        } catch (InterruptedException e) {
+            //
+        }
+        super.shutdown();
 
     }
 }

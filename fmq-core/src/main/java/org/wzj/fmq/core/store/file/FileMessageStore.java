@@ -65,9 +65,13 @@ public class FileMessageStore implements MessageStore {
     }
 
 
-    public void start() throws Exception {
+    public void start()  {
         this.serviceManager.start();
-        this.createTempFile();
+        try {
+            this.createTempFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.shutdown = false;
     }
 
@@ -189,13 +193,18 @@ public class FileMessageStore implements MessageStore {
 
     private void recover(final boolean lastExitOK) {
 
-        if (lastExitOK) {
-            this.serviceManager.getMessageStoreService().recoverNormally();
-        } else {
-            this.serviceManager.getMessageStoreService().recoverAbnormally();
+        long dataQueueCheckpoint = this.serviceManager.getCheckpointService().getDataQueueCheckpoint();
+        long indexQueueCheckpoint = this.serviceManager.getCheckpointService().getIndexQueueCheckpoint();
+        long endOffset = this.serviceManager.getMessageStoreService().recoverNormally(dataQueueCheckpoint);
+
+        if(indexQueueCheckpoint < endOffset ){
+            this.serviceManager.getMessageStoreService().redispatchMessage(this.serviceManager.getCheckpointService()) ;
+        }else if( indexQueueCheckpoint > endOffset ){
+            this.serviceManager.getIndexService().deleteIndex() ;
         }
 
-        this.serviceManager.getIndexService().recoverNormally();
+
+
     }
 
 }

@@ -38,6 +38,8 @@ public class MessageStoreConfig {
     private int putMsgIndexHighWater = 600000;
     private int maxMessageSize = 1024 * 512;
 
+    private String checkpointFile = System.getProperty("user.home") + File.separator + "store/.checkpoint" ;
+
 
     public String getStorePathData() {
         return storePathData;
@@ -109,5 +111,9 @@ public class MessageStoreConfig {
 
     public void setMaxMessageSize(int maxMessageSize) {
         this.maxMessageSize = maxMessageSize;
+    }
+
+    public String getCheckpointFile() {
+        return this.checkpointFile ;
     }
 }

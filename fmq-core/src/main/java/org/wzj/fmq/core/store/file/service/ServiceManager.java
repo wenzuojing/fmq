@@ -15,6 +15,7 @@ public class ServiceManager implements Lifecycle {
     private DispatchMessageService dispatchMessageService;
     private MessageQueryService messageQueryService;
     private RunningService runningService ;
+    private CheckpointService checkpointServcie ;
 
 
     private MessageStoreConfig messageStoreConfig;
@@ -29,6 +30,7 @@ public class ServiceManager implements Lifecycle {
         this.cleanService = new CleanService(this);
         this.dispatchMessageService = new DispatchMessageService(this, this.messageStoreConfig.getPutMsgIndexHighWater());
         this.runningService = new RunningService();
+        this.checkpointServcie = new CheckpointService(this.messageStoreConfig.getCheckpointFile()) ;
     }
 
     public MessageStoreService getMessageStoreService() {
@@ -69,35 +71,43 @@ public class ServiceManager implements Lifecycle {
         this.messageStoreService.init();
         this.indexService.init();
         this.messageQueryService.init();
-        runningService.init();
+        this.runningService.init();
+        this.checkpointServcie.init();
 
     }
 
     @Override
     public void start()  {
-        this.dispatchMessageService.start();
+
         this.cleanService.start();
         this.flushService.start();
         this.messageStoreService.start();
+        this.dispatchMessageService.start();
         this.indexService.start();
         this.messageQueryService.start();
         this.runningService.start();
+        this.checkpointServcie.start();
     }
 
     @Override
     public void shutdown() {
 
         this.cleanService.shutdown();
-        this.dispatchMessageService.shutdown();
         this.flushService.shutdown();
         this.messageStoreService.shutdown();
+        this.dispatchMessageService.shutdown();
         this.indexService.shutdown();
         this.messageQueryService.shutdown();
         this.runningService.shutdown();
+        this.checkpointServcie.shutdown();
 
     }
 
     public RunningService getRunningFlagsService() {
         return this.runningService ;
+    }
+
+    public CheckpointService getCheckpointService() {
+        return checkpointServcie;
     }
 }

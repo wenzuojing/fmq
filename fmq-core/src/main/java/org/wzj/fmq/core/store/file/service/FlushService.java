@@ -13,46 +13,20 @@ public class FlushService extends ServiceThread implements Lifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(Constant.STORE_LOG_NAME);
 
-
-
     private ServiceManager serviceManager;
 
     public FlushService(ServiceManager serviceManager) {
+        super("flush-service");
         this.serviceManager = serviceManager;
     }
 
 
-
     @Override
-    public void run() {
-        log.info(this.getServiceName() + " service started");
-
-        while (!this.isStoped()) {
-            try {
-                int interval = this.serviceManager.getMessageStoreConfig().getFlushInterval();
-                this.waitForRunning(interval);
-            } catch (Exception e) {
-                log.warn(this.getServiceName() + " service has exception. ", e);
-            }
+    public void executeTask() {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-
-        log.info(this.getServiceName() + " service end");
-    }
-
-
-    @Override
-    public String getServiceName() {
-        return FlushService.class.getSimpleName();
-    }
-
-
-    @Override
-    public long getJointime() {
-        return 1000 * 60;
-    }
-
-    @Override
-    public void init() {
-
     }
 }

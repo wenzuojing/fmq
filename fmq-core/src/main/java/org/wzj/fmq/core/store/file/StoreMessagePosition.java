@@ -52,4 +52,13 @@ public class StoreMessagePosition {
         return createTimestamp;
     }
 
+    @Override
+    public String toString() {
+        return "StoreMessagePosition{" +
+                "topic='" + topic + '\'' +
+                ", dataQueueOffset=" + dataQueueOffset +
+                ", msgSize=" + msgSize +
+                ", createTimestamp=" + createTimestamp +
+                '}';
+    }
 }

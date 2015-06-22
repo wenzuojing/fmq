@@ -89,14 +89,12 @@ public class MessageStoreService implements Lifecycle {
     }
 
 
-    public void recoverNormally() {
-        this.recoverNormally();
+    public long recoverNormally(long fromOffset) {
+        return dataQueueManager.recoverNormally(fromOffset);
     }
 
 
-    public void recoverAbnormally() {
-        this.dataQueueManager.recoverAbnormally();
-    }
+
 
     public PutMessageResult putMessage(final StoreMessage msg) {
         msg.setCheckSum(Utils.crc32(msg.getBody()));
@@ -106,31 +104,17 @@ public class MessageStoreService implements Lifecycle {
             long beginLockTimestamp = System.currentTimeMillis();
             msg.setCreateTimestamp(beginLockTimestamp);
 
-            DataQueue dataQueue = this.dataQueueManager.getLastQueue();
-            if (null == dataQueue) {
-                dataQueue = this.dataQueueManager.createNewQueue();
-            }
-            result = dataQueue.appendMessage(msg );
+            result = this.dataQueueManager.appendMessage(msg);
             switch (result.getStatus()) {
-                // 成功追加消息
                 case PUT_OK:
                     break;
-                // 走到文件末尾
                 case END_OF_FILE:
-                    // 创建新文件，重新写消息
-                    dataQueue = this.dataQueueManager.getLastQueue();
-                    if (null == dataQueue) {
-                        log.error("create maped file2 error, topic: " + msg.getTopic());
-                        return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
-                    }
-                    result = dataQueue.appendMessage(msg );
+                    result = this.dataQueueManager.appendMessage(msg);
                     break;
-                // 消息大小超限
                 case MESSAGE_SIZE_EXCEEDED:
                     return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
-                // 未知错误
                 case UNKNOWN_ERROR:
-                    return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+                    //return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
                 default:
                     return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
             }
@@ -144,13 +128,10 @@ public class MessageStoreService implements Lifecycle {
                 log.warn("putMessage in lock eclipse time(ms) " + eclipseTime);
             }
         }
-
-        // 返回结果
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
-
-        // 向发送方返回结果
         return putMessageResult;
     }
+
 
 
     public long readCreateTimestamp(long offset, int size) {
@@ -162,9 +143,6 @@ public class MessageStoreService implements Lifecycle {
     }
 
 
-    /**
-     * 读取消息
-     */
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mapedFileSize = this.serviceManager.getMessageStoreConfig().getDataQueueFileSize();
         DataQueue dataQueue = this.dataQueueManager.findQueueByOffset(offset);
@@ -178,5 +156,7 @@ public class MessageStoreService implements Lifecycle {
     }
 
 
+    public void redispatchMessage(CheckpointService checkpointService) {
 
+    }
 }

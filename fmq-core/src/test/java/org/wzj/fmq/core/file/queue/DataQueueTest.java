@@ -36,6 +36,7 @@ public class DataQueueTest {
     public void test_append_message(){
 
         int wroteSize  = 0 ;
+        int wroteOffset  = 0 ;
 
         for(int i = 0 ;  ; i++ ){
             StoreMessage storeMessage = new StoreMessage();
@@ -43,7 +44,6 @@ public class DataQueueTest {
             storeMessage.setCheckSum(i);
             storeMessage.setCreateTimestamp(i * 100);
             storeMessage.setTopic("topic_" + i);
-            storeMessage.setDataOffset(wroteSize);
             storeMessage.setStoreSize(storeMessage.calNeedByteSize());
             AppendMessageResult appendMessageResult = dataQueue.appendMessage(storeMessage);
             System.out.println(appendMessageResult);
@@ -52,15 +52,15 @@ public class DataQueueTest {
             if(appendMessageResult.getStatus() == AppendMessageStatus.END_OF_FILE ){
                 break;
             }
+
+            Assert.assertEquals(wroteOffset, appendMessageResult.getWroteOffset()) ;
+            wroteOffset += appendMessageResult.getWroteBytes() ;
         }
         Assert.assertEquals(wroteSize, dataQueue.getWritePosition());
     }
 
 
     private List< AppendMessageResult> prepareGetMessage(int mount){
-
-        int wroteSize  = 0 ;
-
         List<AppendMessageResult> ret = new ArrayList<>(mount) ;
         for(int i = 0 ; i < mount ; i++ ){
             StoreMessage storeMessage = new StoreMessage();
@@ -68,10 +68,8 @@ public class DataQueueTest {
             storeMessage.setCheckSum(i);
             storeMessage.setCreateTimestamp(i * 100);
             storeMessage.setTopic("topic_" + i);
-            storeMessage.setDataOffset(wroteSize);
             storeMessage.setStoreSize(storeMessage.calNeedByteSize());
             AppendMessageResult appendMessageResult = dataQueue.appendMessage(storeMessage);
-            wroteSize += appendMessageResult.getWroteBytes() ;
             ret.add(appendMessageResult);
         }
 
@@ -106,7 +104,19 @@ public class DataQueueTest {
 
         }
 
+    }
 
+    @Test
+    public void test_commit(){
 
+        Assert.assertFalse(this.dataQueue.isDirty());
+
+        prepareGetMessage(33) ;
+
+        Assert.assertTrue(this.dataQueue.isDirty());
+
+        this.dataQueue.commit();
+
+        Assert.assertFalse(this.dataQueue.isDirty());
     }
 }

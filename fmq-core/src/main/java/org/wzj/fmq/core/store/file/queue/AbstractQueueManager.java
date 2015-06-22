@@ -189,7 +189,7 @@ public abstract class AbstractQueueManager<T extends FileQueue> implements Lifec
     }
 
     @Override
-    public void start() throws Exception {
+    public void start()  {
 
     }
 
@@ -208,9 +208,8 @@ public abstract class AbstractQueueManager<T extends FileQueue> implements Lifec
     }
 
 
-    public abstract void recoverNormally();
+    public abstract long recoverNormally(long fromOffset);
 
-    public abstract void recoverAbnormally();
 
     public abstract T createNewQueue();
 

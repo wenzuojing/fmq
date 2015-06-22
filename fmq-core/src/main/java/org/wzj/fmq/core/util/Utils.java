@@ -11,6 +11,28 @@ import java.util.zip.CRC32;
  */
 public class Utils {
 
+    public static void deleteDir(String dirName ){
+
+        File dir = new File(dirName);
+
+        if(!dir.exists()){
+            return ;
+        }
+
+        File[] files = dir.listFiles();
+
+        for(File file : files ){
+            if(file.isDirectory() ){
+                deleteDir(file.getPath());
+            }else{
+                file.delete() ;
+            }
+        }
+
+        dir.delete() ;
+
+    }
+
     public static void createDirIfNotExist(final String dirName) {
         if (dirName != null) {
             File f = new File(dirName);
@@ -113,7 +135,7 @@ public class Utils {
     }
 
     public static String long2fileName(long value) {
-        return String.format("%20d", value);
+        return String.format("%020d", value);
     }
 
 

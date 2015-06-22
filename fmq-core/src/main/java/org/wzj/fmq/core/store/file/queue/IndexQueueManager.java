@@ -24,13 +24,11 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
     private final String storePath;
     private final int mapedFileSize;
 
-    private ServiceManager serviceManager;
 
-    public IndexQueueManager(String topic,String storePath,int mapedFileSize,ServiceManager serviceManager) {
+    public IndexQueueManager(String topic,String storePath,int mapedFileSize ) {
         super(storePath + File.separator + topic, mapedFileSize);
         this.storePath = storePath;
         this.mapedFileSize = mapedFileSize;
-        this.serviceManager = serviceManager;
         this.topic = topic;
     }
 
@@ -59,22 +57,10 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
     }
 
     @Override
-    public void recoverNormally() {
-
-        if (!loadedQueues.isEmpty()) {
-            IndexQueue dataQueue = getLastQueue();
-            long processOffset = dataQueue.recover();
-
-            setCommittedWhere(processOffset);
-            truncateDirtyFiles(processOffset);
-        }
-
+    public long recoverNormally(long fromOffset) {
+        throw new UnsupportedOperationException() ;
     }
 
-    @Override
-    public void recoverAbnormally() {
-        recoverNormally();
-    }
 
     @Override
     public IndexQueue createNewQueue() {
@@ -93,10 +79,12 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
                 fromOffset = lastQueue.getFromOffset() + mappedFileSize;
             }
 
-            IndexQueue fileQueue = new IndexQueue(storePath + File.separator + Utils.long2fileName(fromOffset), mappedFileSize );
+            IndexQueue indexQueue = new IndexQueue(storePath + File.separator + Utils.long2fileName(fromOffset), mappedFileSize );
 
-            this.loadedQueues.add(fileQueue);
-            return fileQueue;
+            indexQueue.init();
+            indexQueue.start();
+            this.loadedQueues.add(indexQueue);
+            return indexQueue;
         } finally {
             readWriteLock.writeLock().unlock();
         }
@@ -104,7 +92,7 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
 
 
     public int getTotalMessageNum() {
-        return getMaxIndex() - getMaxIndex() ;
+        return getMaxIndex() - getMinIndex() ;
     }
 
     public StoreMessagePosition indexStoreMessagePosition(long index) {
@@ -113,17 +101,16 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
             return null ;
         }
 
-        for (int i = loadedQueues.size() - 1 ; i >= 0 ; i++ ){
-
-            if( loadedQueues.get(i).getMaxIndex() > index ){
-                return loadedQueues.get(i + 1 ).indexFor(index) ;
+        for (int i = loadedQueues.size() - 1 ; i >= 0 ; i-- ){
+            if( index >= loadedQueues.get(i).getMinIndex() && index <= loadedQueues.get(i).getMaxIndex() ){
+                return loadedQueues.get(i).indexFor(index) ;
             }
         }
 
         return null;
     }
 
-    public int getMinIndex() {
+    public long getMinIndex() {
 
         IndexQueue firstQueue = getFirstQueue();
 
@@ -134,7 +121,7 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
         return 0 ;
     }
 
-    public int getMaxIndex() {
+    public long getMaxIndex() {
         IndexQueue lastQueue = getLastQueue();
 
         if(lastQueue != null ){
@@ -149,7 +136,7 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
             readWriteLock.writeLock().lock();
             IndexQueue lastQueue = getLastQueue();
 
-            if(lastQueue == null && lastQueue.isFull() ){
+            if(lastQueue == null || lastQueue.isFull() ){
                 lastQueue = createNewQueue() ;
             }
 

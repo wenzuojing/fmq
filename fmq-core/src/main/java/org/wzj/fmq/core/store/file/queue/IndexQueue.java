@@ -95,24 +95,24 @@ public class IndexQueue extends AbstractQueue {
         this.maxDataCreateTimestamp = maxDataCreateTimestamp;
     }
 
-    public int getMinIndex(){
+    public long getMinIndex(){
         long fromOffset = getFromOffset();
 
         long c = fromOffset / mappedFile.getFileSize();
 
         long s = fromOffset / IndexQueue.INDEX_UNIT_SIZE;
 
-        return (int) (s  - c);
+        return (s  - c) ;
     }
 
-    public int getMaxIndex(){
-        long writePosition = getWritePosition() ;
+    public long getMaxIndex(){
+        long writePosition = getFromOffset() + getWritePosition();
 
-        long c = writePosition / mappedFile.getFileSize() ;
+        long c = 1 +  writePosition / mappedFile.getFileSize() ;
 
         long s = writePosition / IndexQueue.INDEX_UNIT_SIZE;
 
-        return (int) (s  - c);
+        return (s  - c) ;
     }
 
     /**

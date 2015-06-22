@@ -88,7 +88,7 @@ public abstract class AbstractQueue implements FileQueue {
     }
 
     @Override
-    public void start() throws Exception {
+    public void start()  {
 
     }
 

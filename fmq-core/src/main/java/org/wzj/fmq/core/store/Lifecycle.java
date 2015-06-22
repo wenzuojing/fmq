@@ -7,7 +7,7 @@ public interface Lifecycle {
 
     void init();
 
-    void start() throws Exception;
+    void start() ;
 
 
     void shutdown();

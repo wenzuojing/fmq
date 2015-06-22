@@ -17,7 +17,8 @@ public class IndexService implements Lifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(Constant.STORE_LOG_NAME);
 
-    private ConcurrentHashMap<String/* topic */, IndexQueueManager> indexQueueManagers;
+    private ConcurrentHashMap<String/* topic */, IndexQueueManager> indexQueueManagers = new ConcurrentHashMap<>(100);
+    private ConcurrentHashMap<String/* topic */, Long> topicMaxIndexMap = new ConcurrentHashMap<>(100);
 
     private ServiceManager serviceManager;
 
@@ -31,7 +32,7 @@ public class IndexService implements Lifecycle {
         IndexQueueManager indexQueueManager = indexQueueManagers.get(topic);
 
         if(indexQueueManager == null ){
-            indexQueueManager = new IndexQueueManager(topic,serviceManager.getMessageStoreConfig().getStorePathIndex() , serviceManager.getMessageStoreConfig().getIndexQueueFileSize(),this.serviceManager ) ;
+            indexQueueManager = new IndexQueueManager(topic,serviceManager.getMessageStoreConfig().getStorePathIndex() + File.separator + topic , serviceManager.getMessageStoreConfig().getIndexQueueFileSize() ) ;
         }
 
         indexQueueManager.buildMessageIndex(dataOffset , msgSize ,  createTimestamp) ;
@@ -44,8 +45,6 @@ public class IndexService implements Lifecycle {
     }
 
 
-    public void recoverAbnormally() {
-    }
 
     public IndexQueueManager findIndexIndexQueueManager(String topic) {
         IndexQueueManager manager = this.indexQueueManagers.get(topic);
@@ -66,12 +65,16 @@ public class IndexService implements Lifecycle {
                 IndexQueueManager indexQueueManager = new IndexQueueManager(//
                         topic,//
                         this.serviceManager.getMessageStoreConfig().getStorePathIndex(),//
-                        this.serviceManager.getMessageStoreConfig().getIndexQueueFileSize(),//
-                        this.serviceManager);
+                        this.serviceManager.getMessageStoreConfig().getIndexQueueFileSize());
                 indexQueueManager.init();
                 indexQueueManagers.put(topic, indexQueueManager);
             }
         }
+
+        for(String topic : indexQueueManagers.keySet() ){
+            topicMaxIndexMap.put(topic, indexQueueManagers.get(topic).getMaxIndex() ) ;
+        }
+
     }
 
     @Override
@@ -115,12 +118,20 @@ public class IndexService implements Lifecycle {
                 return indexQueue.getIndexByTime(timestamp) ;
             }
         }
-
-
         return -1 ;
     }
 
     public long getTotalMessageNum(String topic) {
         return serviceManager.getIndexService().getTotalMessageNum(topic);
+    }
+
+
+    public long getAndIncrement(String topic ){
+        Long maxIndex = topicMaxIndexMap.get(topic);
+        if(maxIndex == null ){
+            topicMaxIndexMap.put(topic , Long.valueOf(0)) ;
+        }
+        topicMaxIndexMap.put(topic , maxIndex + 1 ) ;
+        return maxIndex ;
     }
 }
