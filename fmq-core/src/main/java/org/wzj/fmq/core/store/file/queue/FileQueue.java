@@ -27,6 +27,4 @@ public interface FileQueue extends Lifecycle {
 
     boolean isValid();
 
-    long recover();
-
 }

@@ -31,49 +31,49 @@ public class MessageQueryService implements Lifecycle {
         return -1;
     }
 
-    public GetMessageResult getMessage(final String topic, final long index,
+    public GetMessageResult getMessage(final String topic, final long sequence,
                                        final int maxNum) {
 
 
-        long minIndex = 0;
-        long maxIndex = 0;
+        long minSequence = 0;
+        long maxSequence = 0;
 
         GetMessageResult getResult = new GetMessageResult();
         getResult.setStatus(GetMessageStatus.NO_MESSAGE);
 
         IndexQueueManager indexIndexQueueManager = this.serviceManager.getIndexService().findIndexIndexQueueManager(topic);
         if (indexIndexQueueManager != null) {
-            minIndex = indexIndexQueueManager.getMinIndex();
-            maxIndex = indexIndexQueueManager.getMaxIndex();
+            minSequence = indexIndexQueueManager.getMinSequence();
+            maxSequence = indexIndexQueueManager.getMaxSequence();
 
-            if (maxIndex == 0) {
+            if (maxSequence == 0) {
                 getResult.setStatus(GetMessageStatus.NO_MESSAGE);
-                getResult.setNextIndex(0);
-            } else if (index < minIndex) {
+                getResult.setNextSequence(0);
+            } else if (sequence < minSequence) {
                 getResult.setStatus(GetMessageStatus.INDEX_TOO_SMALL);
-                getResult.setNextIndex(minIndex);
-            } else if (index > maxIndex) {
+                getResult.setNextSequence(minSequence);
+            } else if (sequence > maxSequence) {
                 getResult.setStatus(GetMessageStatus.INDEX_TOO_BIG);
-                getResult.setNextIndex(maxIndex);
+                getResult.setNextSequence(maxSequence);
             } else {
-                lookupMessages(index, maxNum, getResult, indexIndexQueueManager);
+                lookupMessages(sequence, maxNum, getResult, indexIndexQueueManager);
             }
         } else {
             getResult.setStatus(GetMessageStatus.NO_MESSAGE);
-            getResult.setNextIndex(0);
+            getResult.setNextSequence(0);
         }
 
 
-        getResult.setMaxIndex(maxIndex);
-        getResult.setMinIndex(minIndex);
+        getResult.setMaxSequence(maxSequence);
+        getResult.setMinSequence(minSequence);
         return getResult;
     }
 
-    private void lookupMessages(long index, int maxNum, GetMessageResult getResult, IndexQueueManager indexIndexQueueManager) {
+    private void lookupMessages(long sequence, int maxNum, GetMessageResult getResult, IndexQueueManager indexIndexQueueManager) {
         if (indexIndexQueueManager != null) {
             getResult.setStatus(GetMessageStatus.NOT_FOUND);
             for (int i = 0; i < maxNum; i++) {
-                StoreMessagePosition storeMessagePosition = indexIndexQueueManager.indexStoreMessagePosition(index++);
+                StoreMessagePosition storeMessagePosition = indexIndexQueueManager.indexStoreMessagePosition(sequence++);
                 SelectMappedBufferResult selectResult =
                         this.serviceManager.getMessageStoreService().getMessage(storeMessagePosition.getDataQueueOffset(), storeMessagePosition.getMsgSize());
                 if (selectResult != null) {
@@ -83,10 +83,10 @@ public class MessageQueryService implements Lifecycle {
                     break;
                 }
             }
-            getResult.setNextIndex(index);
+            getResult.setNextSequence(sequence);
         } else {
             getResult.setStatus(GetMessageStatus.NOT_FOUND);
-            getResult.setNextIndex(index++);
+            getResult.setNextSequence(sequence++);
         }
     }
 

@@ -28,58 +28,56 @@ import java.util.List;
 public class GetMessageResult {
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
     private GetMessageStatus status;
-    private long nextIndex;
-    private long minIndex;
-    private long maxIndex;
+    private long nextSequence;
+    private long minSequence;
+    private long maxSequence;
 
+
+    public GetMessageResult(GetMessageStatus status, long nextSequence, long minSequence, long maxSequence) {
+        this.status = status;
+        this.nextSequence = nextSequence;
+        this.minSequence = minSequence;
+        this.maxSequence = maxSequence;
+    }
 
     public GetMessageResult() {
-    }
 
-    public GetMessageStatus getStatus() {
-        return status;
-    }
-
-
-    public void setStatus(GetMessageStatus status) {
-        this.status = status;
-    }
-
-
-    public long getNextIndex() {
-        return nextIndex;
-    }
-
-    public void setNextIndex(long nextIndex) {
-        this.nextIndex = nextIndex;
-    }
-
-    public long getMinIndex() {
-        return minIndex;
-    }
-
-    public void setMinIndex(long minIndex) {
-        this.minIndex = minIndex;
-    }
-
-    public long getMaxIndex() {
-        return maxIndex;
-    }
-
-    public void setMaxIndex(long maxIndex) {
-        this.maxIndex = maxIndex;
     }
 
     public List<ByteBuffer> getMessageBufferList() {
         return messageBufferList;
     }
 
-    public void addMessage(final SelectMappedBufferResult mapedBuffer) {
-        this.messageBufferList.add(mapedBuffer.getByteBuffer());
+    public GetMessageStatus getStatus() {
+        return status;
     }
 
-    public int getMessageCount() {
-        return this.messageBufferList.size();
+    public void setStatus(GetMessageStatus status) {
+        this.status = status;
+    }
+
+    public long getNextSequence() {
+        return nextSequence;
+    }
+
+    public void setNextSequence(long nextSequence) {
+        this.nextSequence = nextSequence;
+    }
+
+    public long getMinSequence() {
+        return minSequence;
+    }
+
+    public void setMinSequence(long minSequence) {
+        this.minSequence = minSequence;
+    }
+
+    public long getMaxSequence() {
+        return maxSequence;
+    }
+
+    public void setMaxSequence(long maxSequence) {
+        this.maxSequence = maxSequence;
     }
 
     @Override
@@ -87,9 +85,13 @@ public class GetMessageResult {
         return "GetMessageResult{" +
                 "messageBufferList=" + messageBufferList +
                 ", status=" + status +
-                ", nextIndex=" + nextIndex +
-                ", minIndex=" + minIndex +
-                ", maxIndex=" + maxIndex +
+                ", nextSequence=" + nextSequence +
+                ", minSequence=" + minSequence +
+                ", maxSequence=" + maxSequence +
                 '}';
+    }
+
+    public void addMessage(SelectMappedBufferResult selectResult) {
+        messageBufferList.add(selectResult.getByteBuffer()) ;
     }
 }

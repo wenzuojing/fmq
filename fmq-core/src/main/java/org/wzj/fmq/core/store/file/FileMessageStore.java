@@ -136,18 +136,18 @@ public class FileMessageStore implements MessageStore {
     }
 
 
-    public long getMaxIndex(String topic) {
-        return this.serviceManager.getIndexService().getMaxIndex(topic);
+    public long getMaxSequence(String topic) {
+        return this.serviceManager.getIndexService().getMaxSequence(topic);
     }
 
 
-    public long getMinIndex(String topic) {
-        return this.serviceManager.getIndexService().getMinIndex(topic);
+    public long getMinSequence(String topic) {
+        return this.serviceManager.getIndexService().getMinSequence(topic);
     }
 
 
-    public long getIndexByTime(String topic, long timestamp) {
-        return this.serviceManager.getIndexService().getIndexByTime(topic, timestamp);
+    public long getSequenceByTime(String topic, long timestamp) {
+        return this.serviceManager.getIndexService().getSequenceByTime(topic, timestamp);
     }
 
 
@@ -198,9 +198,9 @@ public class FileMessageStore implements MessageStore {
         long endOffset = this.serviceManager.getMessageStoreService().recoverNormally(dataQueueCheckpoint);
 
         if(indexQueueCheckpoint < endOffset ){
-            this.serviceManager.getMessageStoreService().redispatchMessage(this.serviceManager.getCheckpointService()) ;
+            this.serviceManager.getMessageStoreService().redispatchMessage( indexQueueCheckpoint , endOffset ) ;
         }else if( indexQueueCheckpoint > endOffset ){
-            this.serviceManager.getIndexService().deleteIndex() ;
+            //this.serviceManager.getIndexService().deleteIndex() ;
         }
 
 

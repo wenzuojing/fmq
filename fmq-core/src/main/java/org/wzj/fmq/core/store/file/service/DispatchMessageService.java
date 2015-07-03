@@ -61,7 +61,7 @@ public class DispatchMessageService extends ServiceThread{
 
             this.serviceManager.getIndexService().putMessagePositionInfo(storeMessagePosition.getTopic(),
                     storeMessagePosition.getDataQueueOffset(), storeMessagePosition.getMsgSize(),
-                    storeMessagePosition.getCreateTimestamp());
+                    storeMessagePosition.getCreateTimestamp() , storeMessagePosition.getSequence() );
 
         } catch (Exception e) {
             //

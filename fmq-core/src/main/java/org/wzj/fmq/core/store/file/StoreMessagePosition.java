@@ -25,15 +25,18 @@ public class StoreMessagePosition {
     private final int msgSize;
     private final long createTimestamp;
 
+    private final long sequence ;
+
     public StoreMessagePosition(int msgSize) {
-        this(null, 0, msgSize, 0 );
+        this(null, 0, msgSize, 0 , 0  );
     }
 
-    public StoreMessagePosition(String topic, long dataQueueOffset, int msgSize, long createTimestamp ) {
+    public StoreMessagePosition(String topic, long dataQueueOffset, int msgSize, long createTimestamp , long sequence ) {
         this.topic = topic;
         this.dataQueueOffset = dataQueueOffset;
         this.msgSize = msgSize;
         this.createTimestamp = createTimestamp;
+        this.sequence = sequence ;
     }
 
     public String getTopic() {
@@ -52,6 +55,10 @@ public class StoreMessagePosition {
         return createTimestamp;
     }
 
+    public long getSequence() {
+        return sequence;
+    }
+
     @Override
     public String toString() {
         return "StoreMessagePosition{" +
@@ -59,6 +66,7 @@ public class StoreMessagePosition {
                 ", dataQueueOffset=" + dataQueueOffset +
                 ", msgSize=" + msgSize +
                 ", createTimestamp=" + createTimestamp +
+                ", sequence=" + sequence +
                 '}';
     }
 }

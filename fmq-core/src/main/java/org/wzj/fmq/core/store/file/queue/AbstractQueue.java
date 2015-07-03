@@ -107,4 +107,15 @@ public abstract class AbstractQueue implements FileQueue {
         return new SelectMappedBufferResult(pos , byteBuffer , size ) ;
 
     }
+
+    public  boolean contains(long offset){
+
+        if(offset>= getFromOffset() && offset < getFromOffset() + mappedFile.getFileSize() ) {
+            return true ;
+        }else{
+            return false ;
+        }
+
+
+    }
 }

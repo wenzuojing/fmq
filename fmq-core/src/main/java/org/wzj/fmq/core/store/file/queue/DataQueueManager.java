@@ -18,11 +18,11 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
     private static final Logger log = LoggerFactory.getLogger(Constant.STORE_LOG_NAME);
 
 
-    private int maxMessageSize ;
+    private int maxMessageSize;
 
-    public DataQueueManager(String storePath, int mapedFileSize , int maxMessageSize ) {
+    public DataQueueManager(String storePath, int mapedFileSize, int maxMessageSize) {
         super(storePath, mapedFileSize);
-        this.maxMessageSize =  maxMessageSize ;
+        this.maxMessageSize = maxMessageSize;
     }
 
     @Override
@@ -37,7 +37,7 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
                             + " length not matched message store config value, ignore it");
                 }
                 try {
-                    DataQueue fileQueue = new DataQueue(file.getPath(), mappedFileSize ,this.maxMessageSize );
+                    DataQueue fileQueue = new DataQueue(file.getPath(), mappedFileSize, this.maxMessageSize);
                     this.loadedQueues.add(fileQueue);
                     log.info("load " + file.getPath() + " OK");
                 } catch (Exception e) {
@@ -52,18 +52,31 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
     public long recoverNormally(long fromOffset) {
 
         if (!loadedQueues.isEmpty()) {
-            DataQueue dataQueue = getLastQueue();
-            long processOffset = dataQueue.recover();
 
+            int i = 0;
+            int size = loadedQueues.size();
 
-            setCommittedWhere(processOffset);
-            truncateDirtyFiles(processOffset);
+            for (; i < size; i++) {
+                DataQueue dataQueue = loadedQueues.get(i);
+                if (dataQueue.contains(fromOffset)) {
+                    break;
+                }
+            }
+
+            while (i < size) {
+                DataQueue dataQueue = loadedQueues.get(i);
+                DataQueueRecoverResult dataQueueRecoverResult = dataQueue.recover((int) (fromOffset - dataQueue.getFromOffset()));
+                if ((dataQueueRecoverResult.getStatus() == 1 && i + 1 >= size) || dataQueueRecoverResult.getStatus() == 2 || dataQueueRecoverResult.getStatus() == 3) {
+                    return dataQueue.getFromOffset() + dataQueueRecoverResult.getProcess();
+                } else {
+                    continue;
+                }
+            }
+
         }
 
-        return 0 ;
-
+        throw new RuntimeException("Unable recover");
     }
-
 
 
     @Override
@@ -76,14 +89,14 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
 
             if (lastQueue != null) {
 
-                if(!lastQueue.isFull()){
-                    return lastQueue ;
+                if (!lastQueue.isFull()) {
+                    return lastQueue;
                 }
 
                 fromOffset = lastQueue.getFromOffset() + mappedFileSize;
             }
 
-            DataQueue dataQueue = new DataQueue(storePath + File.separator + Utils.long2fileName(fromOffset), mappedFileSize , this.maxMessageSize );
+            DataQueue dataQueue = new DataQueue(storePath + File.separator + Utils.long2fileName(fromOffset), mappedFileSize, this.maxMessageSize);
 
             dataQueue.init();
             dataQueue.start();
@@ -98,10 +111,10 @@ public class DataQueueManager extends AbstractQueueManager<DataQueue> {
     public AppendMessageResult appendMessage(StoreMessage msg) {
         AppendMessageResult result;
         DataQueue dataQueue = getLastQueue();
-        if (null == dataQueue || dataQueue.isFull() ) {
+        if (null == dataQueue || dataQueue.isFull()) {
             dataQueue = createNewQueue();
         }
-        result = dataQueue.appendMessage(msg );
+        result = dataQueue.appendMessage(msg);
         return result;
     }
 

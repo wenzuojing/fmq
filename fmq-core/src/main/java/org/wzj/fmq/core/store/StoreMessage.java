@@ -35,11 +35,13 @@ public class StoreMessage implements Serializable, Encodable {
     public static final int POSITION_FLAG = 12;
     public static final int POSITION_CREATE_TIMESTAMP = 16 ;
     public static final int POSITION_DATA_OFFSET = 24 ;
-    public static final int POSITION_BODY_LEN = 32 ;
+    public static final int position_sequence = 32 ;
+
     private String topic;
     private byte[] body;
     private int storeSize;
     private long dataOffset;
+    private long sequence ;
     private int flag;
     private long createTimestamp;
     private int checkSum;
@@ -100,6 +102,14 @@ public class StoreMessage implements Serializable, Encodable {
         this.dataOffset = dataOffset;
     }
 
+    public long getSequence() {
+        return sequence;
+    }
+
+    public void setSequence(long sequence) {
+        this.sequence = sequence;
+    }
+
     @Override
     public void decode(ByteBuffer buffer) {
 
@@ -109,6 +119,7 @@ public class StoreMessage implements Serializable, Encodable {
         flag = buffer.getInt();
         createTimestamp = buffer.getLong();
         dataOffset = buffer.getLong();
+        sequence = buffer.getLong();
         int bodyByteSize = buffer.getInt();
 
         if (bodyByteSize != 0) {
@@ -136,6 +147,7 @@ public class StoreMessage implements Serializable, Encodable {
         buffer.putInt(flag);
         buffer.putLong(createTimestamp);
         buffer.putLong(dataOffset);
+        buffer.putLong(sequence);
         int bodyByteSize = getBodyByteSize();
         buffer.putInt(bodyByteSize);
 

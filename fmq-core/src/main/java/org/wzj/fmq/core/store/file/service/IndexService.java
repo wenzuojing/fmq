@@ -8,6 +8,8 @@ import org.wzj.fmq.core.store.file.queue.IndexQueue;
 import org.wzj.fmq.core.store.file.queue.IndexQueueManager;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -17,8 +19,8 @@ public class IndexService implements Lifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(Constant.STORE_LOG_NAME);
 
-    private ConcurrentHashMap<String/* topic */, IndexQueueManager> indexQueueManagers = new ConcurrentHashMap<>(100);
-    private ConcurrentHashMap<String/* topic */, Long> topicMaxIndexMap = new ConcurrentHashMap<>(100);
+    private Map<String/* topic */, IndexQueueManager> indexQueueManagers = new ConcurrentHashMap<>(100);
+
 
     private ServiceManager serviceManager;
 
@@ -27,7 +29,7 @@ public class IndexService implements Lifecycle {
     }
 
 
-    public void putMessagePositionInfo(String topic, long dataOffset, int msgSize, long createTimestamp ) {
+    public void putMessagePositionInfo(String topic, long dataOffset, int msgSize, long createTimestamp , long sequence ) {
 
         IndexQueueManager indexQueueManager = indexQueueManagers.get(topic);
 
@@ -35,7 +37,7 @@ public class IndexService implements Lifecycle {
             indexQueueManager = new IndexQueueManager(topic,serviceManager.getMessageStoreConfig().getStorePathIndex() + File.separator + topic , serviceManager.getMessageStoreConfig().getIndexQueueFileSize() ) ;
         }
 
-        indexQueueManager.buildMessageIndex(dataOffset , msgSize ,  createTimestamp) ;
+        indexQueueManager.buildMessageIndex( dataOffset , msgSize ,  createTimestamp , sequence ) ;
 
 
     }
@@ -71,10 +73,12 @@ public class IndexService implements Lifecycle {
             }
         }
 
-        for(String topic : indexQueueManagers.keySet() ){
-            topicMaxIndexMap.put(topic, indexQueueManagers.get(topic).getMaxIndex() ) ;
-        }
+        Map<String,Long> sequences = new HashMap<>(100) ;
 
+        for(String topic : indexQueueManagers.keySet() ){
+            sequences.put(topic, indexQueueManagers.get(topic).getMaxSequence() ) ;
+        }
+        this.serviceManager.getMessageStoreService().initSequences(sequences);
     }
 
     @Override
@@ -87,27 +91,27 @@ public class IndexService implements Lifecycle {
 
     }
 
-    public long getMaxIndex(String topic) {
+    public long getMaxSequence(String topic) {
         IndexQueueManager indexQueueManager = indexQueueManagers.get(topic);
 
         if(indexQueueManager != null ){
-            return indexQueueManager.getMaxIndex() ;
+            return indexQueueManager.getMaxSequence() ;
         }
 
         return 0 ;
     }
 
-    public long getMinIndex(String topic) {
+    public long getMinSequence(String topic) {
         IndexQueueManager indexQueueManager = indexQueueManagers.get(topic);
 
         if(indexQueueManager != null ){
-            return indexQueueManager.getMaxIndex() ;
+            return indexQueueManager.getMinSequence() ;
         }
 
         return -1 ;
     }
 
-    public long getIndexByTime(String topic, long timestamp) {
+    public long getSequenceByTime(String topic, long timestamp) {
 
         IndexQueueManager indexQueueManager = indexQueueManagers.get(topic);
 
@@ -115,23 +119,16 @@ public class IndexService implements Lifecycle {
             IndexQueue indexQueue = indexQueueManager.getQueueByTime(timestamp);
 
             if(indexQueue != null ){
-                return indexQueue.getIndexByTime(timestamp) ;
+                return indexQueue.getSequenceByTime(timestamp) ;
             }
         }
         return -1 ;
     }
 
     public long getTotalMessageNum(String topic) {
-        return serviceManager.getIndexService().getTotalMessageNum(topic);
+        return getMaxSequence(topic) - getMinSequence(topic);
     }
 
 
-    public long getAndIncrement(String topic ){
-        Long maxIndex = topicMaxIndexMap.get(topic);
-        if(maxIndex == null ){
-            topicMaxIndexMap.put(topic , Long.valueOf(0)) ;
-        }
-        topicMaxIndexMap.put(topic , maxIndex + 1 ) ;
-        return maxIndex ;
-    }
+
 }

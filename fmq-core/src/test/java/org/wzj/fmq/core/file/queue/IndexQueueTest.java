@@ -35,9 +35,7 @@ public class IndexQueueTest  {
             indexQueue.appendMessageIndex(99 * i , 999 , 9999 * i );
         }
 
-        Assert.assertEquals( 9999 , indexQueue.getMinDataCreateTimestamp() );
-
-        Assert.assertEquals( 9999 * 2000 , indexQueue.getMaxDataCreateTimestamp() );
+        Assert.assertEquals( 9999 , indexQueue.getFromTimestamp() );
 
         Assert.assertTrue(indexQueue.isFull());
 
@@ -69,20 +67,20 @@ public class IndexQueueTest  {
         }
 
         for(int i = 1 ;i <= 2000 ; i++ ){
-            long index = indexQueue.getIndexByTime(9999 * i);
+            long index = indexQueue.getSequenceByTime(9999 * i);
 
 
             Assert.assertEquals(i - 1, index);
         }
 
         for(int i = 1 ;i <= 1999 ; i++ ){
-            long index = indexQueue.getIndexByTime(9999 * i  + 2 );
+            long index = indexQueue.getSequenceByTime(9999 * i + 2);
 
             Assert.assertEquals(i, index);
         }
 
         for(int i = 2 ;i <= 1999 ; i++ ){
-            long index = indexQueue.getIndexByTime(9999 * i  -  2 );
+            long index = indexQueue.getSequenceByTime(9999 * i  -  2 );
 
             Assert.assertEquals(i - 1 , index);
         }

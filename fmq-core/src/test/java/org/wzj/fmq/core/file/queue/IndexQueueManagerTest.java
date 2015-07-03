@@ -34,11 +34,11 @@ public class IndexQueueManagerTest  {
     public void test_build_message_index(){
 
         for(int i = 1  ; i < 2001 ; i++ ){
-            indexQueueManager.buildMessageIndex(99 * i, 999, 9999 * i);
+            indexQueueManager.buildMessageIndex(99 * i, 999, 9999 * i , i );
         }
 
-        Assert.assertEquals(0, indexQueueManager.getMinIndex());
-        Assert.assertEquals(2000, indexQueueManager.getMaxIndex());
+        Assert.assertEquals(0, indexQueueManager.getMinSequence());
+        Assert.assertEquals(2000, indexQueueManager.getMaxSequence());
         Assert.assertEquals(2000, indexQueueManager.getTotalMessageNum());
     }
 
@@ -48,7 +48,7 @@ public class IndexQueueManagerTest  {
     public void test_index_message_index(){
 
         for(int i = 1  ; i < 2001 ; i++ ){
-            indexQueueManager.buildMessageIndex( 99 * i, 999, 9999 * i);
+            indexQueueManager.buildMessageIndex( 99 * i, 999, 9999 * i , i );
         }
 
         StoreMessagePosition s_0 = indexQueueManager.indexStoreMessagePosition(0);

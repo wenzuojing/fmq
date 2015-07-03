@@ -25,11 +25,11 @@ public interface MessageStore extends Lifecycle {
 
     GetMessageResult getMessage(String topic, long index, final int maxNum);
 
-    long getMaxIndex(String topic);
+    long getMaxSequence(String topic);
 
-    long getMinIndex(String topic);
+    long getMinSequence(String topic);
 
-    long getIndexByTime(String topic, long timestamp);
+    long getSequenceByTime(String topic, long timestamp);
 
     long getMessageStoreTimestamp(String topic, long index);
 

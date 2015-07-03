@@ -29,6 +29,10 @@ import org.wzj.fmq.core.store.file.queue.DataQueue;
 import org.wzj.fmq.core.store.file.queue.DataQueueManager;
 import org.wzj.fmq.core.util.Utils;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 /**
  * CommitLog实现
@@ -40,6 +44,8 @@ public class MessageStoreService implements Lifecycle {
 
     private static final Logger log = LoggerFactory.getLogger(Constant.STORE_LOG_NAME);
     private DataQueueManager dataQueueManager;
+
+    private Map<String/* topic */, Long> sequences = new HashMap<>(100);
 
     private ServiceManager serviceManager;
 
@@ -54,13 +60,7 @@ public class MessageStoreService implements Lifecycle {
 
     }
 
-    public int deleteExpiredFile(long fileReservedTime, int deletePhysicFilesInterval, int destroyMapedFileIntervalForcibly, boolean cleanAtOnce) {
-        return 0;
-    }
 
-    public boolean retryDeleteFirstFile(int destroyMapedFileIntervalForcibly) {
-        return false;
-    }
 
     @Override
     public void init() {
@@ -103,7 +103,7 @@ public class MessageStoreService implements Lifecycle {
         synchronized (this) {
             long beginLockTimestamp = System.currentTimeMillis();
             msg.setCreateTimestamp(beginLockTimestamp);
-
+            msg.setSequence(getSequenceAndIncrement(msg.getTopic()));
             result = this.dataQueueManager.appendMessage(msg);
             switch (result.getStatus()) {
                 case PUT_OK:
@@ -119,7 +119,7 @@ public class MessageStoreService implements Lifecycle {
                     return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
             }
 
-            StoreMessagePosition storeMessagePosition = new StoreMessagePosition(msg.getTopic(), result.getWroteOffset(), result.getWroteBytes(), result.getCreateTimestamp() );
+            StoreMessagePosition storeMessagePosition = new StoreMessagePosition(msg.getTopic(), result.getWroteOffset(), result.getWroteBytes(), result.getCreateTimestamp() , msg.getSequence() );
 
             this.serviceManager.getDispatchMessageService().putDispatchRequest(storeMessagePosition);
 
@@ -132,6 +132,18 @@ public class MessageStoreService implements Lifecycle {
         return putMessageResult;
     }
 
+    private long getSequenceAndIncrement(String topic) {
+        Long sequence = sequences.get(topic);
+        if(sequence == null ){
+            sequences.put(topic , Long.valueOf(0)) ;
+        }
+        sequences.put(topic , sequence + 1 ) ;
+        return sequence ;
+    }
+
+    public void initSequences(Map<String,Long> sequences){
+        this.sequences.putAll(sequences);
+    }
 
 
     public long readCreateTimestamp(long offset, int size) {
@@ -155,8 +167,9 @@ public class MessageStoreService implements Lifecycle {
         return null;
     }
 
+    public void redispatchMessage(long from , long end ) {
 
-    public void redispatchMessage(CheckpointService checkpointService) {
+        //
 
     }
 }

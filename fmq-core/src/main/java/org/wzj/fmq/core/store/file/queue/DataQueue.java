@@ -26,11 +26,11 @@ public class DataQueue extends AbstractQueue {
     }
 
 
-    @Override
-    public long recover() {
-        long processOffset = getFromOffset();
+    public DataQueueRecoverResult recover(int fromPosition ) {
+        int process  =  0 ;
+        ByteBuffer byteBuffer = mappedFile.getByteBuffer(fromPosition);
 
-        ByteBuffer byteBuffer = mappedFile.getByteBuffer();
+        DataQueueRecoverResult dataQueueRecoverResult ;
 
         while (true) {
             byteBuffer.mark();
@@ -41,19 +41,23 @@ public class DataQueue extends AbstractQueue {
                 storeMessage.decode(byteBuffer);
                 if (!checkMessage(storeMessage, true)) {
                     log.info("Found illegal message , " + storeMessage);
+                    dataQueueRecoverResult = new DataQueueRecoverResult(2 , process );
                     break;
                 }
-                processOffset += storeMessage.getStoreSize();
+                process += storeMessage.getStoreSize();
             } else if (magic == StoreMessage.BLANK_MAGIC) {
                 log.info("recover physics file end, " + mappedFile.getFile().getName());
+                dataQueueRecoverResult = new DataQueueRecoverResult(1 , process );
                 break;
 
             } else {
                 log.info("recover physics file end, " + mappedFile.getFile().getName());
+                dataQueueRecoverResult = new DataQueueRecoverResult(3 , process );
                 break;
             }
         }
-        return processOffset;
+
+        return dataQueueRecoverResult;
 
     }
 

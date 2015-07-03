@@ -91,48 +91,51 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
     }
 
 
-    public int getTotalMessageNum() {
-        return getMaxIndex() - getMinIndex() ;
+    public long getTotalMessageNum() {
+        return getMaxSequence() - getMinSequence() ;
     }
 
-    public StoreMessagePosition indexStoreMessagePosition(long index) {
+    public StoreMessagePosition indexStoreMessagePosition(long sequence) {
 
-        if(index < getMinIndex() || index > getMaxIndex() ){
+        if(sequence < getMinSequence() || sequence > getMaxSequence() ){
             return null ;
         }
 
         for (int i = loadedQueues.size() - 1 ; i >= 0 ; i-- ){
-            if( index >= loadedQueues.get(i).getMinIndex() && index <= loadedQueues.get(i).getMaxIndex() ){
-                return loadedQueues.get(i).indexFor(index) ;
+            if( sequence >= loadedQueues.get(i).getMinSequence() && sequence <= loadedQueues.get(i).getMaxSequence() ){
+                return loadedQueues.get(i).indexFor(sequence) ;
             }
         }
 
         return null;
     }
 
-    public long getMinIndex() {
+    public long getMinSequence() {
 
         IndexQueue firstQueue = getFirstQueue();
 
         if(firstQueue != null ){
-            return firstQueue.getMinIndex() ;
+            return firstQueue.getMinSequence() ;
         }
 
         return 0 ;
     }
 
-    public long getMaxIndex() {
+    public long getMaxSequence() {
         IndexQueue lastQueue = getLastQueue();
 
         if(lastQueue != null ){
-            return lastQueue.getMaxIndex() ;
+            return lastQueue.getMaxSequence() ;
         }
         return 0;
     }
 
-    public void buildMessageIndex(long dataOffset, int msgSize, long createTimestamp) {
+    public void buildMessageIndex(long dataOffset, int msgSize, long createTimestamp ,long sequence ) {
 
         try {
+
+            long fromOffset = sequence / ( mapedFileSize / IndexQueue.INDEX_UNIT_SIZE  -1 ) * mapedFileSize  ;
+
             readWriteLock.writeLock().lock();
             IndexQueue lastQueue = getLastQueue();
 
@@ -152,7 +155,7 @@ public class IndexQueueManager extends AbstractQueueManager<IndexQueue> {
         Iterator<IndexQueue> iterator = loadedQueues.iterator();
         while (iterator.hasNext()) {
             IndexQueue indexQueue = iterator.next();
-            if (timestamp >= indexQueue.getMinDataCreateTimestamp()) {
+            if (timestamp >= indexQueue.getFromTimestamp()) {
                 return indexQueue;
             }
         }

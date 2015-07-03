@@ -13,18 +13,13 @@ public class IndexQueue extends AbstractQueue {
 
     public static final int INDEX_UNIT_SIZE = 20 ;
 
-    private volatile long  minDataCreateTimestamp ;
-    private volatile long  maxDataCreateTimestamp ;
+    private volatile long  fromTimestamp ;
 
-    private ByteBuffer header ;
 
 
     @Override
     public void init() {
-
-        header = mappedFile.getByteBuffer(0 , INDEX_UNIT_SIZE ) ;
-        minDataCreateTimestamp = header.getLong();
-        maxDataCreateTimestamp = header.getLong();
+        fromTimestamp = mappedFile.getByteBuffer(0).getLong(12) ;
         mappedFile.setWritePosition(INDEX_UNIT_SIZE);
     }
 
@@ -33,132 +28,78 @@ public class IndexQueue extends AbstractQueue {
     }
 
 
-    @Override
-    public long recover() {
+    public void appendMessageIndex(long dataOffset, int msgSize, long timestamp) {
 
-        ByteBuffer byteBuffer = mappedFile.getByteBuffer();
-        int process = 0 ;
-        while (byteBuffer.hasRemaining() ){
-
-            long dataOffset = byteBuffer.getLong();
-            int msgSize  = byteBuffer.getInt() ;
-            long createTimestamp = byteBuffer.getLong() ;
-
-            if(msgSize>0 && createTimestamp >0  ){
-                process += INDEX_UNIT_SIZE ;
-            }else{
-                break;
-            }
+        if( getFromTimestamp() == 0 ) {
+            setFromTimestamp(timestamp);
         }
-        setWritePosition(INDEX_UNIT_SIZE /*header length */ + process);
-        return INDEX_UNIT_SIZE + process ;
-    }
-
-
-    public void appendMessageIndex(long dataOffset, int msgSize, long createTimestamp) {
-
-        if( getMinDataCreateTimestamp() == 0 ) {
-            setMinDataCreateTimestamp(createTimestamp);
-        }
-
-        setMaxDataCreateTimestamp(createTimestamp);
-
         int writeOffset = getWritePosition();
 
         ByteBuffer byteBuffer = mappedFile.getByteBuffer(writeOffset);
 
         byteBuffer.putLong(dataOffset) ;
         byteBuffer.putInt(msgSize) ;
-        byteBuffer.putLong(createTimestamp) ;
+        byteBuffer.putLong(timestamp) ;
 
         setWritePosition(writeOffset+INDEX_UNIT_SIZE);
 
 
     }
 
-    public long getMinDataCreateTimestamp() {
-        return minDataCreateTimestamp;
+    public void setFromTimestamp(long fromTimestamp) {
+        this.fromTimestamp = fromTimestamp;
     }
 
-    public void setMinDataCreateTimestamp(long minDataCreateTimestamp) {
-        header.putLong(0, minDataCreateTimestamp);
-        this.minDataCreateTimestamp = minDataCreateTimestamp;
+    public long getFromTimestamp() {
+        return fromTimestamp;
     }
 
-    public long getMaxDataCreateTimestamp() {
-
-        return maxDataCreateTimestamp;
-    }
-
-    public void setMaxDataCreateTimestamp(long maxDataCreateTimestamp) {
-        header.putLong(8, maxDataCreateTimestamp ) ;
-        this.maxDataCreateTimestamp = maxDataCreateTimestamp;
-    }
-
-    public long getMinIndex(){
+    public long getMinSequence(){
         long fromOffset = getFromOffset();
-
-        long c = fromOffset / mappedFile.getFileSize();
-
-        long s = fromOffset / IndexQueue.INDEX_UNIT_SIZE;
-
-        return (s  - c) ;
+        return fromOffset / mappedFile.getFileSize();
     }
 
-    public long getMaxIndex(){
+    public long getMaxSequence(){
         long writePosition = getFromOffset() + getWritePosition();
-
-        long c = 1 +  writePosition / mappedFile.getFileSize() ;
-
-        long s = writePosition / IndexQueue.INDEX_UNIT_SIZE;
-
-        return (s  - c) ;
+        return writePosition / IndexQueue.INDEX_UNIT_SIZE;
     }
 
-    /**
-     * 二分查找
-     * @param timestamp
-     * @return
-     */
-    public long getIndexByTime(long timestamp) {
 
-        if( timestamp < getMinDataCreateTimestamp() || timestamp > getMaxDataCreateTimestamp() ){
+    public long getSequenceByTime(long timestamp) {
+
+        if( timestamp < getFromTimestamp()){
             return -1 ;
         }
 
-        return findIndex(timestamp, getMinIndex(), getMaxIndex());
+        ByteBuffer byteBuffer = mappedFile.getByteBuffer(0);
+
+        for(int i = 0 , len = mappedFile.getFileSize() / INDEX_UNIT_SIZE ; i < len ; i++ ){
+
+            long t  = byteBuffer.getLong(i * INDEX_UNIT_SIZE + 12  ) ;
+
+            if(t >= timestamp ){
+                return getMinSequence() + i ;
+            }
+
+        }
+
+        return  -1 ;
     }
 
-    private int  findIndex(long timestamp, int sIndex, int eIndex) {
-        if(sIndex > eIndex ){
-            return sIndex ;
-        }
-        int mIndex  = ( sIndex + eIndex ) / 2 ;
 
-        StoreMessagePosition storeMessagePosition = indexFor(mIndex) ;
+    public StoreMessagePosition indexFor(long sequence ) {
 
-        if( timestamp < storeMessagePosition.getCreateTimestamp() ){
-            return findIndex(timestamp, sIndex , mIndex - 1  ) ;
-        }else if( timestamp > storeMessagePosition.getCreateTimestamp() ){
-            return findIndex(timestamp, mIndex + 1  , eIndex  ) ;
-        }else {
-            return mIndex ;
-        }
-    }
-
-    public StoreMessagePosition indexFor(long index ) {
-
-        if(index < getMinIndex() || index > getMaxIndex() ){
+        if(sequence < getMinSequence() || sequence > getMaxSequence() ){
             return null ;
         }
 
-        int c = (int) (index - getMinIndex());
+        int c = (int) (sequence - getMinSequence());
         ByteBuffer byteBuffer = mappedFile.getByteBuffer(INDEX_UNIT_SIZE + INDEX_UNIT_SIZE * c);
         long dataOffset = byteBuffer.getLong();
         int msgSize  = byteBuffer.getInt() ;
         long createTimestamp = byteBuffer.getLong() ;
 
-        return new StoreMessagePosition(null , dataOffset, msgSize,createTimestamp ) ;
+        return new StoreMessagePosition(null , dataOffset, msgSize,createTimestamp ,sequence  ) ;
 
     }
 }
