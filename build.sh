@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "begin build ......"
+echo "begin build......"
 
 
-mvn install 
+mvn clean install 
