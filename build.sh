@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "begin build ......"
+echo "begin build......"
 
 
 mvn clean install 
