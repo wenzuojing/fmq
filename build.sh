@@ -3,4 +3,4 @@
 echo "begin build ......"
 
 
-mvn install 
+mvn clean install 
